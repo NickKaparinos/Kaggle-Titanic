@@ -6,16 +6,41 @@ Kaggle Competition
 
 import numpy as np
 import pandas as pd
+import re
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
+
+def cabin_transformation(dataframe):
+    # Transform cabin feature into deck number
+    deck = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "U": 8}
+
+    # Fill missing values
+    dataframe['Cabin'] = dataframe['Cabin'].fillna("U0")
+
+    # Keep the first letter using regex
+    dataframe['Cabin'] = dataframe['Cabin'].map(lambda x: re.compile("([a-zA-Z]+)").search(x).group())
+
+    # Map to deck number
+    dataframe['Cabin'] = dataframe['Cabin'].map(deck)
+    dataframe['Cabin'] = dataframe['Cabin'].fillna(0)
+    dataframe['Cabin'] = dataframe['Cabin'].astype(int)
+
+
+def name_transformation(dataframe):
+    dataframe['Title'] = dataframe['Name'].str.split(', ', expand=True)[1].str.split('.', expand=True)[0]
+    dataframe['Is_Married'] = 0
+    dataframe['Is_Married'].loc[dataframe['Title'] == 'Mrs'] = 1
+
+    dataframe['Title'] = dataframe['Title'].replace(
+        ['Miss', 'Mrs', 'Ms', 'Mlle', 'Lady', 'Mme', 'the Countess', 'Dona'], 'Miss/Mrs/Ms')
+    dataframe['Title'] = dataframe['Title'].replace(['Dr', 'Col', 'Major', 'Jonkheer', 'Capt', 'Sir', 'Don', 'Rev'],
+                                                    'Dr/Military/Noble/Clergy')
 
 
 def read_data():
     train_data = pd.read_csv("../Datasets/Titanic/train.csv")
     test_data = pd.read_csv("../Datasets/Titanic/test.csv")
-
-    # print(train_data.info())
-    # print(test_data.info())
 
     # Split
     y_train = train_data[['Survived']].copy()
@@ -23,8 +48,44 @@ def read_data():
     X_test = test_data
 
     # Preprocess # TODO title from name and alone from name
-    columns_to_drop = ['PassengerId', 'Name', 'Ticket', 'Cabin']
+    # columns_to_drop = ['PassengerId', 'Name', 'Ticket', 'Cabin']
+    columns_to_drop = ['PassengerId', 'Ticket']
     X_test.index = X_test['PassengerId']
+    X_train = X_train.drop(columns=columns_to_drop)
+    X_test = X_test.drop(columns=columns_to_drop)
+
+    # Encode Cabin
+    cabin_transformation(X_train)
+    cabin_transformation(X_test)
+
+    # Relatives
+    # X_train['Relatives'] = X_train['SibSp'] + X_train['Parch']
+    # X_test['Relatives'] = X_test['SibSp'] + X_test['Parch']
+    #
+    # X_train['Not_Alone'] = (X_train['Relatives'] > 0).astype(int)
+    # X_test['Not_Alone'] = (X_test['Relatives'] > 0).astype(int)
+
+    # columns_to_drop = ['SibSp', 'Parch']
+    # columns_to_drop = ['Relatives']
+    # X_train = X_train.drop(columns=columns_to_drop)
+    # X_test = X_test.drop(columns=columns_to_drop)
+
+    # Transform name into Title
+    name_transformation(X_train)
+    name_transformation(X_test)
+
+    # Onehot encode Title
+    onehot_encoder = OneHotEncoder()
+    temp = onehot_encoder.fit_transform(X_train[['Title']]).toarray()
+    temp = pd.DataFrame(data=temp, columns=onehot_encoder.categories_[0])
+    X_train = X_train.join(temp)
+
+    temp = onehot_encoder.transform(X_test[['Title']]).toarray()
+    temp = pd.DataFrame(data=temp, index=X_test.index, columns=onehot_encoder.categories_[0])
+    X_test = X_test.join(temp)
+
+    # Drop Name, Title
+    columns_to_drop = ['Name', 'Title']
     X_train = X_train.drop(columns=columns_to_drop)
     X_test = X_test.drop(columns=columns_to_drop)
 
