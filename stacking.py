@@ -6,16 +6,18 @@ Kaggle Competition
 
 import pandas as pd
 from utilities import *
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import StackingClassifier
 from sklearn.linear_model import LogisticRegressionCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.ensemble import VotingClassifier, BaggingClassifier, AdaBoostClassifier, RandomForestClassifier, \
     GradientBoostingClassifier
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
 from itertools import combinations
 import time
 
@@ -24,8 +26,11 @@ def main():
     # Options
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
-    save_submission = True
+    save_submission = False
     start = time.perf_counter()
+
+    cvOuter = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
+    cvInner = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
 
     # Read data
     X_train, y_train, X_test = read_data()
@@ -48,27 +53,29 @@ def main():
     knn_optimal = KNeighborsClassifier(n_neighbors=5)
     mlp_optimal = MLPClassifier(random_state=0, hidden_layer_sizes=(10, 10), solver='lbfgs')
 
+    final_estimator = LogisticRegressionCV(random_state=0)
+
     # Combinations of classifiers
     listOfClassifiers = [('bagging', bagging_optimal), ('adaBoost', adaboost_optimal), ('DT', decision_tree_optimal),
                          ('randomForest', random_forest_optimal), ('gradientBoosting', gradient_boosting_optimal),
                          ('knn', knn_optimal), ('logistic', logistic_regression), ('mlpOptimal', mlp_optimal),
                          ('svmOptimal', svm_optimal)]
-    number_of_combinations = 3
+    number_of_combinations = 4
     comb = combinations(listOfClassifiers, number_of_combinations)
     allCombinations = [i for i in list(comb)]
     print(f"Num of combs = {len(allCombinations)}")
 
     # Pipeline
-    best_cls = VotingClassifier(estimators=[],voting='hard')
+    best_cls = StackingClassifier(estimators=[], final_estimator=final_estimator, cv=cvInner,
+                                  stack_method='predict', passthrough=True)
 
     pipe = Pipeline([
         ('scale', MinMaxScaler()),
         ('voting', best_cls)])
 
     # Cross validation
-    cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
     param_grid = {'voting__estimators': allCombinations}
-    grid = GridSearchCV(estimator=pipe, cv=cv, scoring=['accuracy', 'f1'], param_grid=param_grid,
+    grid = GridSearchCV(estimator=pipe, cv=cvOuter, scoring=['accuracy', 'f1'], param_grid=param_grid,
                         refit='accuracy', n_jobs=10, verbose=1).fit(X_train, y_train.iloc[:, 0])
     best_index = grid.best_index_
     cv_results = pd.DataFrame(grid.cv_results_)

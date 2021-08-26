@@ -47,7 +47,7 @@ def read_data():
     X_train = train_data.drop(columns=['Survived'])
     X_test = test_data
 
-    # Preprocess # TODO title from name and alone from name
+    # Preprocess
     # columns_to_drop = ['PassengerId', 'Name', 'Ticket', 'Cabin']
     columns_to_drop = ['PassengerId', 'Ticket']
     X_test.index = X_test['PassengerId']
@@ -58,17 +58,10 @@ def read_data():
     cabin_transformation(X_train)
     cabin_transformation(X_test)
 
-    # Relatives
-    # X_train['Relatives'] = X_train['SibSp'] + X_train['Parch']
-    # X_test['Relatives'] = X_test['SibSp'] + X_test['Parch']
-    #
-    # X_train['Not_Alone'] = (X_train['Relatives'] > 0).astype(int)
-    # X_test['Not_Alone'] = (X_test['Relatives'] > 0).astype(int)
-
-    # columns_to_drop = ['SibSp', 'Parch']
-    # columns_to_drop = ['Relatives']
-    # X_train = X_train.drop(columns=columns_to_drop)
-    # X_test = X_test.drop(columns=columns_to_drop)
+    columns_to_drop = ['SibSp', 'Parch']
+    columns_to_drop = ['Relatives']
+    X_train = X_train.drop(columns=columns_to_drop)
+    X_test = X_test.drop(columns=columns_to_drop)
 
     # Transform name into Title
     name_transformation(X_train)
