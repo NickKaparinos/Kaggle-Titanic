@@ -11,7 +11,7 @@ The sinking of the RMS Titanic is one of the most infamous shipwrecks in history
 One of the reasons that the shipwreck led to such loss of life was that there were not enough lifeboats for the passengers and crew. Although there was some element of luck involved in surviving the sinking, some groups of people were more likely to survive than others, such as women, children, and the upper-class.
 
 ## Cross validation results
-After applying the appropriete preprocessing, each model was evaluated using 10-fold cross validation. Each model\`s hyperparameters were tuned using extensive grid search. Afterwards, tuned models can be ensembled together for a boost in accuracy.
+After applying the appropriate preprocessing, each model was evaluated using 10-fold cross validation. Each model\`s hyperparameters were tuned using extensive grid search. Afterwards, tuned models can be ensembled together for a boost in accuracy.
 <p align="center"><img src="https://github.com/NickKaparinos/Kaggle-Titanic/blob/master/Plots/cv.png" alt="drawing" width="1200"/></p>
 
 ## Test set results
